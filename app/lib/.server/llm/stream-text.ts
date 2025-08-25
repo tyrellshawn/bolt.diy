@@ -2,6 +2,7 @@ import { convertToCoreMessages, streamText as _streamText } from 'ai';
 import { getModel } from '~/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
+import { trimMessagesForSmallModel } from './context-trimmer';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, getModelList, MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import type { IProviderSetting } from '~/types/model';
 
@@ -88,13 +89,16 @@ export async function streamText(props: {
 
   const modelDetails = MODEL_LIST.find((m) => m.name === currentModel);
 
+  // Trim messages for smaller models to fit context window
+  const trimmedMessages = trimMessagesForSmallModel(processedMessages, currentModel, modelDetails);
+
   const dynamicMaxTokens = modelDetails && modelDetails.maxTokenAllowed ? modelDetails.maxTokenAllowed : MAX_TOKENS;
 
   return _streamText({
     model: getModel(currentProvider, currentModel, env, apiKeys, providerSettings) as any,
-    system: getSystemPrompt(),
+    system: getSystemPrompt(undefined, currentModel, modelDetails),
     maxTokens: dynamicMaxTokens,
-    messages: convertToCoreMessages(processedMessages as any),
+    messages: convertToCoreMessages(trimmedMessages as any),
     ...options,
   });
 }
