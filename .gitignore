@@ -37,3 +37,6 @@ modelfiles
 
 # docs ignore
 site
+
+.gemini/
+gha-creds-*.json
